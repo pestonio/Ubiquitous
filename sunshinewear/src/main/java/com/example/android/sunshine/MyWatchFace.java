@@ -31,6 +31,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -103,7 +104,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         private static final String COLON = ":";
         private boolean mShouldDrawColon;
         private final Point displaySize = new Point();
-//        Paint mBackgroundPaint;
+        //        Paint mBackgroundPaint;
 //        Paint mTextPaint;
         boolean mAmbient;
         Calendar mCalendar;
@@ -127,7 +128,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
             LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            myLayout = inflater.inflate(R.layout.round_watch_face, null);
+            myLayout = inflater.inflate(R.layout.watch_face, null);
 
             Display display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
             display.getSize(displaySize);
@@ -147,8 +148,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
             weatherIcon = (ImageView) myLayout.findViewById(R.id.watch_face_weather_icon);
             timeColon = (TextView) myLayout.findViewById(R.id.watch_face_colon);
 
-
-
             setWatchFaceStyle(new WatchFaceStyle.Builder(MyWatchFace.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
@@ -157,13 +156,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .build());
             Resources resources = MyWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
-
-//            mBackgroundPaint = new Paint();
-//            mBackgroundPaint.setColor(resources.getColor(R.color.background));
-
-//            mTextPaint = new Paint();
-//            mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
-
             mCalendar = Calendar.getInstance();
         }
 
@@ -173,13 +165,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
             super.onDestroy();
         }
 
-//        private Paint createTextPaint(int textColor) {
-//            Paint paint = new Paint();
-//            paint.setColor(textColor);
-//            paint.setTypeface(NORMAL_TYPEFACE);
-//            paint.setAntiAlias(true);
-//            return paint;
-//        }
 
         @Override
         public void onVisibilityChanged(boolean visible) {
@@ -319,7 +304,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             myLayout.layout(0, 0, myLayout.getMeasuredWidth(),
                     myLayout.getMeasuredHeight());
             if (isInAmbientMode()) {
-                parentView.setBackgroundColor(getResources().getColor(R.color.black));
+                parentView.setBackgroundColor(getColor(R.color.black));
                 date.setVisibility(View.GONE);
                 month.setVisibility(View.GONE);
                 year.setVisibility(View.GONE);
@@ -328,17 +313,19 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 maxTemp.setVisibility(View.GONE);
                 weatherIcon.setVisibility(View.GONE);
                 myLayout.draw(canvas);
-            }else {
-                if (mShouldDrawColon){
+            } else {
+                if (mShouldDrawColon) {
                     timeColon.setTextColor(getColor(R.color.white));
                     timeColon.setText(COLON);
-                }else {
+                    Log.v("LOG_TAG", "COLON SET OK");
+                } else {
                     timeColon.setTextColor(getColor(R.color.background));
+                    Log.v("LOG_TAG", "COLON HIDDEN");
                 }
                 canvas.drawColor(Color.BLACK);
                 myLayout.draw(canvas);
             }
-
+            invalidate();
         }
 
         /**
