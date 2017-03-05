@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@color/background"
+    android:id="@+id/watch_face_parent">
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -29,6 +30,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/white"
                     android:textSize="@dimen/time_text_size"
+                    android:paddingStart="1dp"
+                    android:paddingEnd="1dp"
                     tools:text="15" />
 
                 <TextView
@@ -37,6 +40,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/white"
                     android:textSize="@dimen/time_text_size"
+                    android:paddingStart="1dp"
+                    android:paddingEnd="1dp"
                     tools:text=":" />
 
                 <TextView
@@ -45,6 +50,8 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/white"
                     android:textSize="@dimen/time_text_size"
+                    android:paddingStart="1dp"
+                    android:paddingEnd="1dp"
                     tools:text="30" />
 
             </LinearLayout>
@@ -62,7 +69,7 @@
                     android:textSize="@dimen/day_date_text_size"
                     android:paddingStart="2dp"
                     android:paddingEnd="2dp"
-                    tools:text="SUN, " />
+                    tools:text="SUN" />
 
 
                 <TextView
@@ -81,7 +88,7 @@
                     android:textSize="@dimen/day_date_text_size"
                     android:paddingStart="2dp"
                     android:paddingEnd="2dp"
-                    tools:text=" MAR" />
+                    tools:text="MAR" />
 
                 <TextView
                     android:id="@+id/watch_face_year"
@@ -90,7 +97,7 @@
                     android:textSize="@dimen/day_date_text_size"
                     android:paddingStart="2dp"
                     android:paddingEnd="2dp"
-                    tools:text=" 2017" />
+                    tools:text="2017" />
 
             </LinearLayout>
 

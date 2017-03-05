@@ -37,6 +37,7 @@ import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -96,7 +97,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
         boolean mRegisteredTimeZoneReceiver = false;
         private int specW, specH;
         private View myLayout;
-        private TextView day, date, month, year, hour, minute;
+        private View parentView;
+        private TextView day, date, month, year, hour, minute, maxTemp, minTemp, timeColon;
+        private ImageView weatherIcon;
+        private static final String COLON = ":";
+        private boolean mShouldDrawColon;
         private final Point displaySize = new Point();
 //        Paint mBackgroundPaint;
 //        Paint mTextPaint;
@@ -136,6 +141,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
             year = (TextView) myLayout.findViewById(R.id.watch_face_year);
             hour = (TextView) myLayout.findViewById(R.id.watch_face_hours);
             minute = (TextView) myLayout.findViewById(R.id.watch_face_minute);
+            parentView = (View) myLayout.findViewById(R.id.watch_face_parent);
+            maxTemp = (TextView) myLayout.findViewById(R.id.watch_face_max_temp);
+            minTemp = (TextView) myLayout.findViewById(R.id.watch_face_min_temp);
+            weatherIcon = (ImageView) myLayout.findViewById(R.id.watch_face_weather_icon);
+            timeColon = (TextView) myLayout.findViewById(R.id.watch_face_colon);
 
 
 
@@ -277,6 +287,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         public void onDraw(Canvas canvas, Rect bounds) {
             long currentTime = System.currentTimeMillis();
             mCalendar.setTimeInMillis(currentTime);
+            mShouldDrawColon = (System.currentTimeMillis() % 1000) < 500;
             String weekDay;
             String currentMonth;
             String currentDate;
@@ -307,27 +318,27 @@ public class MyWatchFace extends CanvasWatchFaceService {
             myLayout.measure(specW, specH);
             myLayout.layout(0, 0, myLayout.getMeasuredWidth(),
                     myLayout.getMeasuredHeight());
+            if (isInAmbientMode()) {
+                parentView.setBackgroundColor(getResources().getColor(R.color.black));
+                date.setVisibility(View.GONE);
+                month.setVisibility(View.GONE);
+                year.setVisibility(View.GONE);
+                day.setVisibility(View.GONE);
+                minTemp.setVisibility(View.GONE);
+                maxTemp.setVisibility(View.GONE);
+                weatherIcon.setVisibility(View.GONE);
+                myLayout.draw(canvas);
+            }else {
+                if (mShouldDrawColon){
+                    timeColon.setTextColor(getColor(R.color.white));
+                    timeColon.setText(COLON);
+                }else {
+                    timeColon.setTextColor(getColor(R.color.background));
+                }
+                canvas.drawColor(Color.BLACK);
+                myLayout.draw(canvas);
+            }
 
-            canvas.drawColor(Color.BLACK);
-            myLayout.draw(canvas);
-
-            // Draw the background.
-//            if (isInAmbientMode()) {
-//                canvas.drawColor(Color.BLACK);
-//            } else {
-//                canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
-//            }
-//
-//            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
-//            long now = System.currentTimeMillis();
-//            mCalendar.setTimeInMillis(now);
-//
-//            String text = mAmbient
-//                    ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-//                    mCalendar.get(Calendar.MINUTE))
-//                    : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-//                    mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
-//            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
 
         /**
