@@ -275,6 +275,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
+            long currentTime = System.currentTimeMillis();
+            mCalendar.setTimeInMillis(currentTime);
             String weekDay;
             String currentMonth;
             String currentDate;
@@ -282,11 +284,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
             String currentHr;
             String currentMin;
             SimpleDateFormat dayFormat = new SimpleDateFormat("E", Locale.getDefault());
-            SimpleDateFormat dateFormat = new SimpleDateFormat("d", Locale.getDefault());
-            SimpleDateFormat monthFormat = new SimpleDateFormat("M", Locale.getDefault());
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd", Locale.getDefault());
+            SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", Locale.getDefault());
             SimpleDateFormat yrFormat = new SimpleDateFormat("y", Locale.getDefault());
-            SimpleDateFormat hourFormat = new SimpleDateFormat("H", Locale.getDefault());
-            SimpleDateFormat minFormat = new SimpleDateFormat("m", Locale.getDefault());
+            SimpleDateFormat hourFormat = new SimpleDateFormat("HH", Locale.getDefault());
+            SimpleDateFormat minFormat = new SimpleDateFormat("mm", Locale.getDefault());
 
             weekDay = dayFormat.format(mCalendar.getTime());
             currentMonth = monthFormat.format(mCalendar.getTime());

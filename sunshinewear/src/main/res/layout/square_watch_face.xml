@@ -60,19 +60,18 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="@dimen/day_date_text_size"
-                    tools:text="SUN" />
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
+                    tools:text="SUN, " />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="@dimen/day_date_text_size"
-                    tools:text=", " />
 
                 <TextView
                     android:id="@+id/watch_face_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="@dimen/day_date_text_size"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
                     tools:text="05" />
 
                 <TextView
@@ -80,6 +79,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="@dimen/day_date_text_size"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
                     tools:text=" MAR" />
 
                 <TextView
@@ -87,14 +88,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="@dimen/day_date_text_size"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
                     tools:text=" 2017" />
 
             </LinearLayout>
 
             <View
-                android:layout_width="match_parent"
+                android:layout_width="96dp"
                 android:layout_height="1dp"
-                android:layout_margin="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
                 android:background="@color/watch_separator">
 
             </View>
