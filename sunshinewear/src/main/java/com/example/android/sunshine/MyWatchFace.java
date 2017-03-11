@@ -21,6 +21,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -29,6 +31,8 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.util.Log;
@@ -42,12 +46,24 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
+
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+
+import static android.view.View.GONE;
 
 /**
  * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
@@ -93,17 +109,16 @@ public class MyWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
-        final Handler mUpdateTimeHandler = new EngineHandler(this);
-        boolean mRegisteredTimeZoneReceiver = false;
-        private int specW, specH;
-        private View myLayout;
-        private View parentView;
-        private TextView day, date, month, year, hour, minute, maxTemp, minTemp, timeColon;
-        private ImageView weatherIcon;
+    private class Engine extends CanvasWatchFaceService.Engine implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
+            DataApi.DataListener {
         private static final String COLON = ":";
-        private boolean mShouldDrawColon;
+        final Handler mUpdateTimeHandler = new EngineHandler(this);
+        final String WEATHER_PATH = "/weather";
+        final String MAX_TEMP = "com.example.android.sunshine.max_temp";
+        final String MIN_TEMP = "com.example.android.sunshine.min_temp";
+        final String ICON = "com.example.android.sunshine.icon";
         private final Point displaySize = new Point();
+        boolean mRegisteredTimeZoneReceiver = false;
         //        Paint mBackgroundPaint;
 //        Paint mTextPaint;
         boolean mAmbient;
@@ -117,12 +132,21 @@ public class MyWatchFace extends CanvasWatchFaceService {
         };
         float mXOffset;
         float mYOffset;
-
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
          * disable anti-aliasing in ambient mode.
          */
         boolean mLowBitAmbient;
+        private int specW, specH;
+        private View myLayout;
+        private View parentView;
+        private TextView day, date, month, year, hour, minute, maxTemp, minTemp, timeColon;
+        private ImageView weatherIconView;
+        private boolean mShouldDrawColon;
+        private String highTemp;
+        private String lowTemp;
+        private Bitmap weatherIcon;
+        private GoogleApiClient mGoogleApiClient;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -145,7 +169,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             parentView = (View) myLayout.findViewById(R.id.watch_face_parent);
             maxTemp = (TextView) myLayout.findViewById(R.id.watch_face_max_temp);
             minTemp = (TextView) myLayout.findViewById(R.id.watch_face_min_temp);
-            weatherIcon = (ImageView) myLayout.findViewById(R.id.watch_face_weather_icon);
+            weatherIconView = (ImageView) myLayout.findViewById(R.id.watch_face_weather_icon);
             timeColon = (TextView) myLayout.findViewById(R.id.watch_face_colon);
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(MyWatchFace.this)
@@ -157,6 +181,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
             Resources resources = MyWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mCalendar = Calendar.getInstance();
+
+            mGoogleApiClient = new GoogleApiClient.Builder(MyWatchFace.this)
+                    .addApi(Wearable.API)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .build();
+            mGoogleApiClient.connect();
+
         }
 
         @Override
@@ -171,12 +203,17 @@ public class MyWatchFace extends CanvasWatchFaceService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
+                mGoogleApiClient.connect();
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
                 mCalendar.setTimeZone(TimeZone.getDefault());
                 invalidate();
             } else {
+                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
+                    mGoogleApiClient.disconnect();
+                }
                 unregisterReceiver();
             }
 
@@ -234,9 +271,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode;
-                if (mLowBitAmbient) {
-//                    mTextPaint.setAntiAlias(!inAmbientMode);
-                }
                 invalidate();
             }
 
@@ -299,28 +333,30 @@ public class MyWatchFace extends CanvasWatchFaceService {
             year.setText(currentYr);
             hour.setText(currentHr);
             minute.setText(currentMin);
+            if (highTemp != null && lowTemp != null && weatherIcon != null) {
+                weatherIconView.setImageBitmap(weatherIcon);
+                maxTemp.setText(highTemp);
+                minTemp.setText(lowTemp);
+            }
 
             myLayout.measure(specW, specH);
             myLayout.layout(0, 0, myLayout.getMeasuredWidth(),
                     myLayout.getMeasuredHeight());
             if (isInAmbientMode()) {
                 parentView.setBackgroundColor(getColor(R.color.black));
-                date.setVisibility(View.GONE);
-                month.setVisibility(View.GONE);
-                year.setVisibility(View.GONE);
-                day.setVisibility(View.GONE);
-                minTemp.setVisibility(View.GONE);
-                maxTemp.setVisibility(View.GONE);
-                weatherIcon.setVisibility(View.GONE);
+                date.setVisibility(GONE);
+                month.setVisibility(GONE);
+                year.setVisibility(GONE);
+                day.setVisibility(GONE);
+                minTemp.setVisibility(GONE);
+                maxTemp.setVisibility(GONE);
                 myLayout.draw(canvas);
             } else {
                 if (mShouldDrawColon) {
                     timeColon.setTextColor(getColor(R.color.white));
                     timeColon.setText(COLON);
-                    Log.v("LOG_TAG", "COLON SET OK");
                 } else {
                     timeColon.setTextColor(getColor(R.color.background));
-                    Log.v("LOG_TAG", "COLON HIDDEN");
                 }
                 canvas.drawColor(Color.BLACK);
                 myLayout.draw(canvas);
@@ -359,5 +395,50 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+
+
+        @Override
+        public void onConnected(@Nullable Bundle bundle) {
+            Log.v("MWF_onConnected", "Connected to API" + bundle);
+            Wearable.DataApi.addListener(mGoogleApiClient, this);
+
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+
+        }
+
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+        }
+
+        @Override
+        public void onDataChanged(DataEventBuffer dataEventBuffer) {
+            for (DataEvent event : dataEventBuffer) {
+                if (event.getType() == DataEvent.TYPE_CHANGED && event.getDataItem().getUri().getPath().equals(WEATHER_PATH)) {
+                    DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
+                    Asset icon = dataMapItem.getDataMap().getAsset(ICON);
+                    weatherIcon = loadBitmapFromAsset(icon);
+                    highTemp = dataMapItem.getDataMap().getString(MAX_TEMP);
+                    lowTemp = dataMapItem.getDataMap().getString(MIN_TEMP);
+                }
+
+            }
+        }
+
+        public Bitmap loadBitmapFromAsset(Asset asset) {
+            if (asset == null) {
+                throw new IllegalArgumentException("Asset must be non-null");
+            }
+            InputStream inputStream = Wearable.DataApi.getFdForAsset(mGoogleApiClient, asset).await().getInputStream();
+            mGoogleApiClient.disconnect();
+            if (inputStream == null) {
+                return null;
+            }
+            return BitmapFactory.decodeStream(inputStream);
+        }
+
     }
 }

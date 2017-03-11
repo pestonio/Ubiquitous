@@ -9,14 +9,28 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 
 import com.example.android.sunshine.DetailActivity;
 import com.example.android.sunshine.R;
 import com.example.android.sunshine.data.SunshinePreferences;
 import com.example.android.sunshine.data.WeatherContract;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
+
+import java.io.ByteArrayOutputStream;
 
 public class NotificationUtils {
 
@@ -103,7 +117,7 @@ public class NotificationUtils {
              * forecast.
              */
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context)
-                    .setColor(ContextCompat.getColor(context,R.color.colorPrimary))
+                    .setColor(ContextCompat.getColor(context, R.color.colorPrimary))
                     .setSmallIcon(smallArtResourceId)
                     .setLargeIcon(largeIcon)
                     .setContentTitle(notificationTitle)
@@ -129,6 +143,9 @@ public class NotificationUtils {
 
             /* WEATHER_NOTIFICATION_ID allows you to update or cancel the notification later on */
             notificationManager.notify(WEATHER_NOTIFICATION_ID, notificationBuilder.build());
+
+//            Pass the current notification to the wearable (method below)
+            notifyWearable(context, high, low, BitmapFactory.decodeResource(resources, smallArtResourceId));
 
             /*
              * Since we just showed a notification, save the current time. That way, we can check
@@ -174,5 +191,56 @@ public class NotificationUtils {
                 SunshineWeatherUtils.formatTemperature(context, low));
 
         return notificationText;
+    }
+
+    private static void notifyWearable(Context context, double high, double low, Bitmap icon) {
+        GoogleApiClient mGoogleApiClient;
+        final String WEATHER_PATH = "/weather";
+        final String MAX_TEMP = "com.example.android.sunshine.max_temp";
+        final String MIN_TEMP = "com.example.android.sunshine.min_temp";
+        final String ICON = "com.example.android.sunshine.icon";
+
+        mGoogleApiClient = new GoogleApiClient.Builder(context).addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+            @Override
+            public void onConnected(@Nullable Bundle bundle) {
+                Log.v("LOG_NotificationUtils", "onConnected" + bundle);
+            }
+
+            @Override
+            public void onConnectionSuspended(int i) {
+                Log.v("LOG_NotificationUtils", "onConnectionSuspended" + i);
+
+            }
+        }).addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+            @Override
+            public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+                Log.v("LOG_NotificationUtils", "onConnectionFailed" + connectionResult);
+
+            }
+        }).addApi(Wearable.API).build();
+
+        PutDataMapRequest mapRequest = PutDataMapRequest.create(WEATHER_PATH);
+        mapRequest.getDataMap().putString(MAX_TEMP, SunshineWeatherUtils.formatTemperature(context, high));
+        mapRequest.getDataMap().putString(MIN_TEMP, SunshineWeatherUtils.formatTemperature(context, low));
+        Asset weatherIcon = creatAssetFromBitmap(icon);
+        mapRequest.getDataMap().putAsset(ICON, weatherIcon);
+        PutDataRequest putDataRequest = mapRequest.asPutDataRequest();
+        putDataRequest.setUrgent();
+        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+            @Override
+            public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
+                if (dataItemResult.getStatus().isSuccess()){
+                    Log.v("TAG", "Sent weather info");
+                }else {
+                    Log.v("TAG", "Failed to send weather info");
+                }
+            }
+        });
+    }
+
+    private static Asset creatAssetFromBitmap(Bitmap bitmap) {
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
     }
 }
