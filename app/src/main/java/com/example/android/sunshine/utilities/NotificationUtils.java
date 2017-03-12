@@ -223,16 +223,19 @@ public class NotificationUtils {
         PutDataMapRequest mapRequest = PutDataMapRequest.create(WEATHER_PATH);
         mapRequest.getDataMap().putString(MAX_TEMP, SunshineWeatherUtils.formatTemperature(context, high));
         mapRequest.getDataMap().putString(MIN_TEMP, SunshineWeatherUtils.formatTemperature(context, low));
+        mapRequest.getDataMap().putLong("Time", System.currentTimeMillis());
         Asset weatherIcon = creatAssetFromBitmap(icon);
         mapRequest.getDataMap().putAsset(ICON, weatherIcon);
         PutDataRequest putDataRequest = mapRequest.asPutDataRequest();
         putDataRequest.setUrgent();
-        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+        Wearable.DataApi
+                .putDataItem(mGoogleApiClient, putDataRequest)
+                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
             @Override
             public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
-                if (dataItemResult.getStatus().isSuccess()){
+                if (dataItemResult.getStatus().isSuccess()) {
                     Log.v("TAG", "Sent weather info");
-                }else {
+                } else {
                     Log.v("TAG", "Failed to send weather info");
                 }
             }

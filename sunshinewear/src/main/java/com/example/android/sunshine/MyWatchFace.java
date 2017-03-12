@@ -109,8 +109,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
-            DataApi.DataListener {
+    private class Engine extends CanvasWatchFaceService.Engine implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener {
         private static final String COLON = ":";
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         final String WEATHER_PATH = "/weather";
@@ -333,10 +332,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
             year.setText(currentYr);
             hour.setText(currentHr);
             minute.setText(currentMin);
-            if (highTemp != null && lowTemp != null && weatherIcon != null) {
-                weatherIconView.setImageBitmap(weatherIcon);
+            if (highTemp != null) {
                 maxTemp.setText(highTemp);
+            }
+            if (lowTemp != null) {
                 minTemp.setText(lowTemp);
+            }
+            if (weatherIcon != null){
+                weatherIconView.setImageBitmap(weatherIcon);
             }
 
             myLayout.measure(specW, specH);
@@ -418,11 +421,21 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onDataChanged(DataEventBuffer dataEventBuffer) {
+            Log.v("LOG", "onDataChanged wFace called");
             for (DataEvent event : dataEventBuffer) {
-                if (event.getType() == DataEvent.TYPE_CHANGED && event.getDataItem().getUri().getPath().equals(WEATHER_PATH)) {
+                if (event.getType() == DataEvent.TYPE_CHANGED && event.getDataItem()
+                        .getUri()
+                        .getPath()
+                        .equals(WEATHER_PATH)) {
                     DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
-                    Asset icon = dataMapItem.getDataMap().getAsset(ICON);
-                    weatherIcon = loadBitmapFromAsset(icon);
+                    final Asset icon = dataMapItem.getDataMap().getAsset(ICON);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            weatherIcon = loadBitmapFromAsset(icon);
+
+                        }
+                    }).start();
                     highTemp = dataMapItem.getDataMap().getString(MAX_TEMP);
                     lowTemp = dataMapItem.getDataMap().getString(MIN_TEMP);
                 }
@@ -434,13 +447,15 @@ public class MyWatchFace extends CanvasWatchFaceService {
             if (asset == null) {
                 throw new IllegalArgumentException("Asset must be non-null");
             }
-            InputStream inputStream = Wearable.DataApi.getFdForAsset(mGoogleApiClient, asset).await().getInputStream();
+            InputStream inputStream = Wearable
+                    .DataApi.getFdForAsset(mGoogleApiClient, asset)
+                    .await()
+                    .getInputStream();
             mGoogleApiClient.disconnect();
             if (inputStream == null) {
                 return null;
             }
             return BitmapFactory.decodeStream(inputStream);
         }
-
     }
 }
