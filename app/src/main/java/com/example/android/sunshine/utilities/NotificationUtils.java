@@ -200,15 +200,15 @@ public class NotificationUtils {
         final String MIN_TEMP = "com.example.android.sunshine.min_temp";
         final String ICON = "com.example.android.sunshine.icon";
 
-        mGoogleApiClient = new GoogleApiClient.Builder(context).addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+        mGoogleApiClient = new GoogleApiClient.Builder(context).addApi(Wearable.API).addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
             @Override
             public void onConnected(@Nullable Bundle bundle) {
-                Log.v("LOG_NotificationUtils", "onConnected" + bundle);
+                Log.v("LOG_NotificationUtils", "onConnected " + bundle);
             }
 
             @Override
             public void onConnectionSuspended(int i) {
-                Log.v("LOG_NotificationUtils", "onConnectionSuspended" + i);
+                Log.v("LOG_NotificationUtils", "onConnectionSuspended " + i);
 
             }
         }).addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
@@ -217,7 +217,8 @@ public class NotificationUtils {
                 Log.v("LOG_NotificationUtils", "onConnectionFailed" + connectionResult);
 
             }
-        }).addApi(Wearable.API).build();
+        }).build();
+        mGoogleApiClient.connect();
 
         PutDataMapRequest mapRequest = PutDataMapRequest.create(WEATHER_PATH);
         mapRequest.getDataMap().putString(MAX_TEMP, SunshineWeatherUtils.formatTemperature(context, high));
