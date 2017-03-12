@@ -404,13 +404,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
         public void onConnected(@Nullable Bundle bundle) {
             Log.v("MWF_onConnected", "Connected to API " + bundle);
             Wearable.DataApi.addListener(mGoogleApiClient, this);
-
         }
 
         @Override
         public void onConnectionSuspended(int i) {
             Log.v("MWF_onConnected", "Called ");
-
         }
 
         @Override
