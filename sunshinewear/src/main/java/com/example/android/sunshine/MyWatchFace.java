@@ -433,7 +433,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
                         @Override
                         public void run() {
                             weatherIcon = loadBitmapFromAsset(icon);
-
                         }
                     }).start();
                     highTemp = dataMapItem.getDataMap().getString(MAX_TEMP);
@@ -451,7 +450,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .DataApi.getFdForAsset(mGoogleApiClient, asset)
                     .await()
                     .getInputStream();
-            mGoogleApiClient.disconnect();
             if (inputStream == null) {
                 return null;
             }
