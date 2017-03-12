@@ -416,7 +416,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
         @Override
         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
             Log.v("MWF_onConnectionFailed", "Called " + connectionResult.getErrorMessage());
-
         }
 
         @Override
